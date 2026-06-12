@@ -1,0 +1,181 @@
+{% load dict_filters %}
+{% extends "recognition/base.html" %}
+{% block title %}Add Training Photos{% endblock %}
+{% block extra_css %}
+<style>
+  #videoContainer { position:relative; border-radius:.75rem; overflow:hidden; background:#000; }
+  #video { width:100%; border-radius:.75rem; display:block; }
+  #overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+  .employee-card { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:.75rem; padding:1rem; cursor:pointer; transition:all .2s; }
+  .employee-card:hover, .employee-card.selected { border-color:#0d6efd; background:rgba(13,110,253,.08); }
+  .photo-count-bar { height:8px; border-radius:4px; background:rgba(255,255,255,.1); overflow:hidden; }
+  .photo-count-fill { height:100%; background:linear-gradient(90deg,#0d6efd,#00d4ff); transition:width .3s; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-title"><i class="bi bi-camera2 me-2"></i>Add Training Photos</div>
+<div class="page-subtitle">Capture face photos for each employee to train the recognition model</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-people-fill me-2 text-primary"></i>Select Employee</div>
+      <div class="card-body">
+        {% for emp in employees %}
+        <div class="employee-card mb-2" onclick="selectEmployee('{{ emp.username }}', {{ photo_counts|get_item:emp.username|default:0 }})" id="emp-{{ emp.username }}">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;background:rgba(13,110,253,.15);flex-shrink:0">
+              <i class="bi bi-person-fill text-primary"></i>
+            </div>
+            <div class="flex-grow-1">
+              <div class="text-white fw-500">{{ emp.username }}</div>
+              <div class="small text-white-50 mb-1">{{ photo_counts|get_item:emp.username|default:0 }} / {{ target }} photos</div>
+              <div class="photo-count-bar">
+                <div class="photo-count-fill" style="width:{% widthratio photo_counts|get_item:emp.username|default:0 target 100 %}%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-4 text-white-50">
+          <i class="bi bi-person-plus-fill fs-2 d-block mb-2"></i>
+          No employees found. <a href="{% url 'register' %}">Register employees first.</a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-camera-video-fill me-1 text-success"></i>
+        <span>Webcam Capture</span>
+        <span class="ms-auto" id="selectedName" style="color:#00d4ff"></span>
+      </div>
+      <div class="card-body">
+        <div id="noneSelected" class="text-center py-5 text-white-50">
+          <i class="bi bi-person-bounding-box fs-1 d-block mb-2"></i>Select an employee from the list to begin
+        </div>
+        <div id="captureUI" style="display:none">
+          <div id="videoContainer" class="mb-3">
+            <video id="video" autoplay playsinline muted></video>
+            <canvas id="overlay"></canvas>
+          </div>
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="flex-grow-1">
+              <div class="d-flex justify-content-between small text-white-50 mb-1">
+                <span>Photos captured</span>
+                <span id="countText">0 / {{ target }}</span>
+              </div>
+              <div class="photo-count-bar">
+                <div class="photo-count-fill" id="progressFill" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-2">
+            <button id="btnStart" class="btn btn-success flex-grow-1" onclick="startCapture()">
+              <i class="bi bi-play-fill me-1"></i>Start Auto-Capture
+            </button>
+            <button id="btnStop" class="btn btn-danger flex-grow-1" onclick="stopCapture()" style="display:none">
+              <i class="bi bi-stop-fill me-1"></i>Stop
+            </button>
+          </div>
+          <div id="doneMsg" class="alert alert-success mt-3" style="display:none">
+            <i class="bi bi-check-circle-fill me-2"></i>Photo capture complete! You can now <a href="{% url 'train' %}">train the model</a>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedUser = null;
+let capturing = false;
+let captureInterval = null;
+let currentCount = 0;
+const target = {{ target }};
+let stream = null;
+
+function selectEmployee(username, existingCount) {
+  document.querySelectorAll('.employee-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('emp-' + username).classList.add('selected');
+  selectedUser = username;
+  currentCount = existingCount;
+  document.getElementById('selectedName').textContent = username;
+  document.getElementById('noneSelected').style.display = 'none';
+  document.getElementById('captureUI').style.display = 'block';
+  updateProgress(currentCount);
+  initCamera();
+}
+
+async function initCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({video: {width:640, height:480}});
+    document.getElementById('video').srcObject = stream;
+  } catch(e) {
+    alert('Camera access denied: ' + e.message);
+  }
+}
+
+function updateProgress(count) {
+  const pct = Math.min(100, (count / target) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('countText').textContent = count + ' / ' + target;
+  if (count >= target) {
+    stopCapture();
+    document.getElementById('doneMsg').style.display = 'block';
+  }
+}
+
+function startCapture() {
+  if (!selectedUser || !stream) return;
+  capturing = true;
+  document.getElementById('btnStart').style.display = 'none';
+  document.getElementById('btnStop').style.display = 'block';
+  captureInterval = setInterval(captureFrame, 250);
+}
+
+function stopCapture() {
+  capturing = false;
+  clearInterval(captureInterval);
+  document.getElementById('btnStart').style.display = 'block';
+  document.getElementById('btnStop').style.display = 'none';
+}
+
+async function captureFrame() {
+  if (!capturing || currentCount >= target) { stopCapture(); return; }
+  const video = document.getElementById('video');
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const imageData = canvas.toDataURL('image/jpeg', 0.85);
+  try {
+    const resp = await fetch('{% url "api-capture-photo" %}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+      body: JSON.stringify({username: selectedUser, image: imageData})
+    });
+    const data = await resp.json();
+    if (data.success) {
+      currentCount = data.count;
+      updateProgress(currentCount);
+      document.querySelectorAll('.employee-card').forEach(c => {
+        if (c.id === 'emp-' + selectedUser) {
+          c.querySelector('.text-white-50').textContent = currentCount + ' / ' + target + ' photos';
+        }
+      });
+    }
+  } catch(e) { console.error(e); }
+}
+
+function getCookie(name) {
+  let v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+  return v ? v[2] : null;
+}
+</script>
+{% endblock %}
