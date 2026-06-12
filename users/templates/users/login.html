@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — FaceAttend</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body { background:#0a0a1a; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+    .login-card { background:rgba(17,24,39,.95); border:1px solid rgba(255,255,255,.08); border-radius:1.25rem; padding:2.5rem; width:100%; max-width:420px; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+    .form-control { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); color:#fff; padding:.75rem 1rem; border-radius:.625rem; }
+    .form-control:focus { background:rgba(255,255,255,.08); border-color:#0d6efd; box-shadow:0 0 0 .2rem rgba(13,110,253,.2); color:#fff; }
+    .form-label { color:rgba(255,255,255,.6); font-size:.875rem; font-weight:500; }
+    .btn-login { background:linear-gradient(135deg,#0d6efd,#0096ff); border:none; padding:.875rem; border-radius:.625rem; font-weight:600; font-size:1rem; transition:all .3s; }
+    .btn-login:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(13,110,253,.4); }
+    .accent { color:#00d4ff; }
+  </style>
+</head>
+<body>
+<div class="login-card">
+  <div class="text-center mb-4">
+    <div class="mb-3"><i class="bi bi-camera-fill fs-1" style="color:#00d4ff"></i></div>
+    <h4 class="text-white fw-bold">Face<span class="accent">Attend</span></h4>
+    <p class="text-white-50 small">Sign in to your account</p>
+  </div>
+
+  {% if form.errors %}
+  <div class="alert alert-danger py-2 mb-3">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>Invalid username or password.
+  </div>
+  {% endif %}
+
+  <form method="POST">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label class="form-label">Username</label>
+      <input type="text" name="username" class="form-control" placeholder="Enter username" required autofocus>
+    </div>
+    <div class="mb-4">
+      <label class="form-label">Password</label>
+      <input type="password" name="password" class="form-control" placeholder="Enter password" required>
+    </div>
+    <button type="submit" class="btn btn-login btn-primary w-100">
+      <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+    </button>
+  </form>
+
+  <div class="text-center mt-4">
+    <a href="{% url 'home' %}" class="text-white-50 text-decoration-none small">
+      <i class="bi bi-house me-1"></i>Back to Home
+    </a>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
