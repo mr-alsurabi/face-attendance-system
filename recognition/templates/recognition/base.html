@@ -23,7 +23,7 @@
     .sidebar .nav-link:hover, .sidebar .nav-link.active { background: rgba(13,110,253,.15); color: #fff; }
     .sidebar .nav-link i { width: 1.25rem; margin-right: .5rem; }
     .sidebar-section { font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.3); padding: .75rem 1.25rem .25rem; }
-    .main-content { flex: 1; padding: 2rem; overflow-y: auto; }
+    .main-content { flex: 1; padding: 2rem; overflow-y: auto; min-width: 0; }
     .stat-card { background: var(--fa-card); border: 1px solid var(--fa-border); border-radius: .75rem; padding: 1.5rem; transition: transform .2s, border-color .2s; }
     .stat-card:hover { transform: translateY(-2px); border-color: rgba(13,110,253,.4); }
     .stat-icon { width: 48px; height: 48px; border-radius: .75rem; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
@@ -40,7 +40,7 @@
     .form-control:focus, .form-select:focus { background: rgba(255,255,255,.08); border-color: var(--fa-primary); box-shadow: 0 0 0 .2rem rgba(13,110,253,.25); color: #fff; }
     .page-title { font-weight: 700; font-size: 1.5rem; margin-bottom: .25rem; }
     .page-subtitle { color: rgba(255,255,255,.45); font-size: .875rem; margin-bottom: 1.5rem; }
-    .wrap { display: flex; min-height: calc(100vh - 56px); }
+    .app-wrap { display: flex; min-height: calc(100vh - 56px); }
   </style>
   {% block extra_css %}{% endblock %}
 </head>
@@ -70,7 +70,7 @@
 </nav>
 
 {% if user.is_authenticated %}
-<div class="wrap">
+<div class="app-wrap">
   <div class="sidebar d-none d-lg-flex flex-column">
     {% if user.is_staff or user.is_superuser %}
       <div class="sidebar-section">Overview</div>
@@ -101,19 +101,23 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
     {% endfor %}
-    {% block content %}{% endblock %}
+{% else %}
+<div class="container-fluid py-3">
+  {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show mt-3" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% block content %}{% endblock %}
+
+{% if user.is_authenticated %}
   </div>
 </div>
 {% else %}
-  <div class="container-fluid">
-    {% for message in messages %}
-      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show mt-3" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      </div>
-    {% endfor %}
-    {% block content %}{% endblock %}
-  </div>
+</div>
 {% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
