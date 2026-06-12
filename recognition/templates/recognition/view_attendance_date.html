@@ -1,0 +1,49 @@
+{% extends "recognition/base.html" %}
+{% block title %}Attendance by Date{% endblock %}
+{% block content %}
+<div class="page-title"><i class="bi bi-calendar3 me-2"></i>Attendance by Date</div>
+<div class="page-subtitle">View all employee attendance for a specific date</div>
+
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-funnel me-2 text-primary"></i>Select Date</div>
+  <div class="card-body">
+    <form method="POST">
+      {% csrf_token %}
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label text-white-50 small">Date</label>
+          {{ form.date }}
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-1"></i>Search</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if results %}
+<div class="card">
+  <div class="card-header d-flex align-items-center">
+    <i class="bi bi-table me-2 text-success"></i>Results for {{ selected_date }}
+    <span class="ms-auto badge bg-primary bg-opacity-25 text-primary">{{ results|length }} records</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Employee</th><th>Status</th><th>Check-In</th><th>Check-Out</th><th>Hours</th></tr></thead>
+      <tbody>
+        {% for r in results %}
+        <tr>
+          <td><i class="bi bi-person-circle me-2 text-white-50"></i>{{ r.username }}</td>
+          <td>{% if r.present %}<span class="badge badge-present rounded-pill">Present</span>{% else %}<span class="badge badge-absent rounded-pill">Absent</span>{% endif %}</td>
+          <td>{% if r.time_in %}{{ r.time_in|date:"H:i:s" }}{% else %}<span class="text-white-50">—</span>{% endif %}</td>
+          <td>{% if r.time_out %}{{ r.time_out|date:"H:i:s" }}{% else %}<span class="text-white-50">—</span>{% endif %}</td>
+          <td>{{ r.hours }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
