@@ -1,0 +1,206 @@
+{% extends "recognition/base.html" %}
+{% block title %}{{ mode_label }}{% endblock %}
+{% block extra_css %}
+<style>
+  #videoWrap { position:relative; border-radius:.75rem; overflow:hidden; background:#000; max-width:640px; margin:0 auto; }
+  #video { width:100%; display:block; border-radius:.75rem; }
+  #overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+  .status-box { border-radius:.75rem; padding:1.25rem; text-align:center; min-height:100px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .face-badge { display:inline-flex; align-items:center; gap:.5rem; background:rgba(25,135,84,.2); border:1px solid rgba(25,135,84,.4); border-radius:2rem; padding:.5rem 1.25rem; font-size:1.1rem; color:#3dd68c; font-weight:600; }
+  .scan-ring { width:120px; height:120px; border-radius:50%; border:3px solid rgba(13,110,253,.3); border-top-color:#0d6efd; animation:spin 1s linear infinite; margin:0 auto 1rem; display:flex; align-items:center; justify-content:center; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-title"><i class="bi bi-{% if mode == 'in' %}box-arrow-in-right text-success{% else %}box-arrow-right text-danger{% endif %} me-2"></i>{{ mode_label }}</div>
+<div class="page-subtitle">Face the camera — recognition is automatic</div>
+
+<div class="row g-4 justify-content-center">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-body p-3">
+        <div id="cameraError" class="alert alert-danger" style="display:none">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          Camera not accessible. Please allow camera permission and refresh.
+        </div>
+        <div id="videoWrap">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="overlay"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header"><i class="bi bi-activity me-2 text-success"></i>Recognition Status</div>
+      <div class="card-body d-flex flex-column gap-3">
+        <div class="status-box" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)" id="statusBox">
+          <div class="scan-ring" id="scanRing"><i class="bi bi-camera-fill text-primary fs-3"></i></div>
+          <div class="text-white-50 small" id="statusText">Scanning for face...</div>
+        </div>
+
+        <div id="recognizedBox" style="display:none" class="status-box" style="background:rgba(25,135,84,.08);border:1px solid rgba(25,135,84,.2)">
+          <i class="bi bi-person-check-fill text-success fs-2 mb-2"></i>
+          <div class="face-badge mb-2" id="recognizedName">—</div>
+          <div class="text-white-50 small" id="confidenceText"></div>
+          <div class="progress w-100 mt-2" style="height:6px">
+            <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" id="confirmBar" style="width:0%"></div>
+          </div>
+          <div class="small text-white-50 mt-1" id="confirmText">Confirming...</div>
+        </div>
+
+        <div id="successBox" style="display:none" class="status-box" style="background:rgba(25,135,84,.1);border:1px solid rgba(25,135,84,.3)">
+          <i class="bi bi-check-circle-fill text-success fs-1 mb-2"></i>
+          <div class="text-success fw-bold fs-5" id="successName"></div>
+          <div class="text-white-50 small mt-1" id="successTime"></div>
+          <a href="{% url 'dashboard' %}" class="btn btn-success mt-3">
+            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+          </a>
+        </div>
+
+        <div class="card p-3">
+          <div class="small text-white-50 mb-2"><i class="bi bi-info-circle me-1"></i>Instructions</div>
+          <ul class="small text-white-50 mb-0 ps-3">
+            <li>Ensure your face is well-lit and visible</li>
+            <li>Look directly at the camera</li>
+            <li>Hold still for 2-3 seconds</li>
+            <li>Attendance is marked automatically</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const MODE = '{{ mode }}';
+const THRESHOLD = 5;
+let stream = null;
+let processing = false;
+let recognitionCounts = {};
+let attendanceMarked = false;
+let scanInterval = null;
+
+async function initCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({video: {width:640, height:480, facingMode:'user'}});
+    const video = document.getElementById('video');
+    video.srcObject = stream;
+    await new Promise(r => video.onloadedmetadata = r);
+    const overlay = document.getElementById('overlay');
+    overlay.width = video.videoWidth;
+    overlay.height = video.videoHeight;
+    scanInterval = setInterval(processFrame, 400);
+  } catch(e) {
+    document.getElementById('cameraError').style.display = 'block';
+    document.getElementById('videoWrap').style.display = 'none';
+  }
+}
+
+async function processFrame() {
+  if (attendanceMarked || processing) return;
+  processing = true;
+  const video = document.getElementById('video');
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const imageData = canvas.toDataURL('image/jpeg', 0.85);
+
+  try {
+    const resp = await fetch('{% url "api-recognize" %}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+      body: JSON.stringify({image: imageData})
+    });
+    const data = await resp.json();
+
+    if (data.recognized && data.faces && data.faces.length > 0) {
+      const face = data.faces[0];
+      if (face.name !== 'Unknown') {
+        const name = face.name;
+        recognitionCounts[name] = (recognitionCounts[name] || 0) + 1;
+        const count = recognitionCounts[name];
+        showRecognizing(name, face.confidence, count);
+        if (count >= THRESHOLD) {
+          clearInterval(scanInterval);
+          await markAttendance(name);
+        }
+      } else {
+        setStatus('Face detected but not recognized', 'scanning');
+        drawFaceBox(video, data.faces[0].location, '#ff4444');
+      }
+    } else {
+      setStatus('Scanning for face...', 'scanning');
+      clearCanvas();
+    }
+  } catch(e) {
+    console.error(e);
+    setStatus('Connection error, retrying...', 'scanning');
+  }
+  processing = false;
+}
+
+function showRecognizing(name, conf, count) {
+  document.getElementById('statusBox').style.display = 'none';
+  document.getElementById('recognizedBox').style.display = 'flex';
+  document.getElementById('recognizedName').textContent = name;
+  document.getElementById('confidenceText').textContent = 'Confidence: ' + (conf * 100).toFixed(1) + '%';
+  const pct = Math.min(100, (count / THRESHOLD) * 100);
+  document.getElementById('confirmBar').style.width = pct + '%';
+  document.getElementById('confirmText').textContent = 'Confirming... ' + count + '/' + THRESHOLD;
+}
+
+function setStatus(msg, state) {
+  document.getElementById('statusBox').style.display = 'flex';
+  document.getElementById('recognizedBox').style.display = 'none';
+  document.getElementById('statusText').textContent = msg;
+}
+
+async function markAttendance(username) {
+  try {
+    const resp = await fetch('{% url "api-mark-attendance" %}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+      body: JSON.stringify({username: username, mode: MODE})
+    });
+    const data = await resp.json();
+    if (data.success) {
+      attendanceMarked = true;
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      document.getElementById('statusBox').style.display = 'none';
+      document.getElementById('recognizedBox').style.display = 'none';
+      document.getElementById('successBox').style.display = 'flex';
+      document.getElementById('successName').textContent = (MODE === 'in' ? '✓ Checked In: ' : '✓ Checked Out: ') + username;
+      document.getElementById('successTime').textContent = 'Time: ' + data.time;
+    }
+  } catch(e) { console.error(e); }
+}
+
+function drawFaceBox(video, loc, color) {
+  const canvas = document.getElementById('overlay');
+  const ctx = canvas.getContext('2d');
+  const scaleX = canvas.width / (video.videoWidth || 640);
+  const scaleY = canvas.height / (video.videoHeight || 480);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const [top, right, bottom, left] = loc;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(left * scaleX, top * scaleY, (right - left) * scaleX, (bottom - top) * scaleY);
+}
+
+function clearCanvas() {
+  const canvas = document.getElementById('overlay');
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function getCookie(name) {
+  let v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+  return v ? v[2] : null;
+}
+
+initCamera();
+</script>
+{% endblock %}
