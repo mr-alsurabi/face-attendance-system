@@ -1,0 +1,118 @@
+{% extends "recognition/base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<div class="page-title">Admin Dashboard</div>
+<div class="page-subtitle">Overview of today's attendance and weekly trends</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon" style="background:rgba(13,110,253,.15)"><i class="bi bi-people-fill text-primary"></i></div>
+        <div><div class="text-white-50 small">Total Employees</div><div class="fs-3 fw-bold text-white">{{ total_emp }}</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon" style="background:rgba(25,135,84,.15)"><i class="bi bi-person-check-fill text-success"></i></div>
+        <div><div class="text-white-50 small">Present Today</div><div class="fs-3 fw-bold text-white">{{ present_today }}</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon" style="background:rgba(220,53,69,.15)"><i class="bi bi-person-x-fill text-danger"></i></div>
+        <div><div class="text-white-50 small">Absent Today</div><div class="fs-3 fw-bold text-white" id="absentCount">—</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="stat-card">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon" style="background:rgba(255,193,7,.15)"><i class="bi bi-calendar-check-fill text-warning"></i></div>
+        <div><div class="text-white-50 small">Total Records</div><div class="fs-3 fw-bold text-white">{{ total_records }}</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header px-3 py-2 d-flex align-items-center gap-2">
+        <i class="bi bi-graph-up text-primary"></i><span>This Week</span>
+        <span class="ms-auto badge bg-primary bg-opacity-25 text-primary small">Mon–Fri</span>
+      </div>
+      <div class="card-body"><canvas id="chartThisWeek" height="200"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header px-3 py-2 d-flex align-items-center gap-2">
+        <i class="bi bi-graph-down text-secondary"></i><span>Last Week</span>
+      </div>
+      <div class="card-body"><canvas id="chartLastWeek" height="200"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header px-3 py-2 d-flex align-items-center gap-2">
+    <i class="bi bi-clock-history text-success"></i><span>Present Today</span>
+    <span class="ms-auto">
+      <a href="{% url 'view-attendance-date' %}" class="btn btn-sm btn-outline-primary">View All</a>
+    </span>
+  </div>
+  <div class="card-body p-0">
+    {% if recent %}
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead><tr><th>Employee</th><th>Date</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for r in recent %}
+          <tr>
+            <td><i class="bi bi-person-circle me-2 text-white-50"></i>{{ r.user.username }}</td>
+            <td>{{ r.date }}</td>
+            <td><span class="badge badge-present rounded-pill">Present</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-white-50"><i class="bi bi-calendar-x fs-1 d-block mb-2"></i>No attendance records for today</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-3 mt-2">
+  <div class="col-auto"><a href="{% url 'mark-attendance-in' %}" class="btn btn-success"><i class="bi bi-box-arrow-in-right me-1"></i>Mark Check-In</a></div>
+  <div class="col-auto"><a href="{% url 'mark-attendance-out' %}" class="btn btn-danger"><i class="bi bi-box-arrow-right me-1"></i>Mark Check-Out</a></div>
+  <div class="col-auto"><a href="{% url 'export-csv' %}" class="btn btn-outline-secondary"><i class="bi bi-download me-1"></i>Export CSV</a></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const chartOpts = (label, data, labels, color) => ({
+  type: 'bar',
+  data: {
+    labels: labels,
+    datasets: [{ label: label, data: data, backgroundColor: color + '33', borderColor: color, borderWidth: 2, borderRadius: 6 }]
+  },
+  options: {
+    responsive: true, plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#aaa', font: { size: 11 } } },
+      y: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#aaa', precision: 0 }, beginAtZero: true }
+    }
+  }
+});
+document.getElementById('absentCount').textContent = {{ total_emp }} - {{ present_today }};
+new Chart(document.getElementById('chartThisWeek'), chartOpts('Present', {{ tw_counts }}, {{ tw_dates }}, '#0d6efd'));
+new Chart(document.getElementById('chartLastWeek'), chartOpts('Present', {{ lw_counts }}, {{ lw_dates }}, '#6c757d'));
+</script>
+{% endblock %}
