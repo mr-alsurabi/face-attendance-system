@@ -1,0 +1,77 @@
+{% extends "recognition/base.html" %}
+{% block title %}Train Model{% endblock %}
+{% block content %}
+<div class="page-title"><i class="bi bi-cpu-fill me-2"></i>Train Recognition Model</div>
+<div class="page-subtitle">Train the SVM classifier on captured face photos</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-info-circle me-2 text-info"></i>Model Information</div>
+      <div class="card-body">
+        <div id="statusArea">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-hourglass-split text-warning fs-4"></i>
+            <div class="text-white-50">Loading model status...</div>
+          </div>
+        </div>
+        <div class="border-top border-secondary pt-3 mt-3">
+          <div class="small text-white-50 mb-2">How training works:</div>
+          <ul class="small text-white-50 ps-3">
+            <li>Extracts 128-dimensional face encodings using dlib</li>
+            <li>Trains a Linear SVM classifier on the encodings</li>
+            <li>Saves the model for real-time recognition</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-play-circle-fill me-2 text-success"></i>Start Training</div>
+      <div class="card-body">
+        {% if trained %}
+        <div class="alert alert-success"><i class="bi bi-check-circle-fill me-2"></i>Training completed successfully!</div>
+        {% endif %}
+        <p class="text-white-50 small">Training will process all captured photos and build a new face recognition model. This may take a few minutes.</p>
+        <div id="trainProgress" style="display:none" class="mb-3">
+          <div class="text-white-50 small mb-2">Training in progress...</div>
+          <div class="progress" style="height:8px"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%"></div></div>
+        </div>
+        <form method="POST" action="{% url 'train' %}" onsubmit="showProgress()">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-primary w-100 btn-lg">
+            <i class="bi bi-cpu-fill me-2"></i>Train Model Now
+          </button>
+        </form>
+        <div class="mt-3 d-flex gap-2">
+          <a href="{% url 'add-photos' %}" class="btn btn-outline-secondary btn-sm flex-fill"><i class="bi bi-camera2 me-1"></i>Add More Photos</a>
+          <a href="{% url 'mark-attendance-in' %}" class="btn btn-outline-success btn-sm flex-fill"><i class="bi bi-check-circle me-1"></i>Test Recognition</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showProgress() {
+  document.getElementById('trainProgress').style.display = 'block';
+}
+fetch('{% url "api-model-status" %}')
+  .then(r => r.json())
+  .then(data => {
+    const el = document.getElementById('statusArea');
+    if (data.trained) {
+      el.innerHTML = `<div class="alert alert-success py-2 mb-3"><i class="bi bi-check-circle-fill me-2"></i>Model is trained and ready</div>`;
+    } else {
+      el.innerHTML = `<div class="alert alert-warning py-2 mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>Model not trained yet</div>`;
+    }
+    if (data.people.length > 0) {
+      let rows = data.people.map(p => `<tr><td class="text-white">${p.name}</td><td><span class="badge bg-primary bg-opacity-25 text-primary">${p.photos} photos</span></td></tr>`).join('');
+      el.innerHTML += `<table class="table table-sm mb-0"><thead><tr><th>Employee</th><th>Photos</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+  });
+</script>
+{% endblock %}
