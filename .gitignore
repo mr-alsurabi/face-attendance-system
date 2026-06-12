@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# Face recognition data (large files)
+face_recognition_data/training_dataset/
+face_recognition_data/svc.sav
+face_recognition_data/classes.npy
+face_recognition_data/shape_predictor_68_face_landmarks.dat
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Replit
+.replit
+replit.nix
+.cache/
+.local/
+.upm/
