@@ -69,7 +69,7 @@
 <script>
 new Chart(document.getElementById('empChart'), {
   type:'bar',
-  data:{labels:{{ chart_dates }}, datasets:[{label:'Hours', data:{{ chart_hours }}, backgroundColor:'rgba(13,110,253,.3)', borderColor:'#0d6efd', borderWidth:2, borderRadius:4}]},
+  data:{labels:{{ chart_dates|safe }}, datasets:[{label:'Hours', data:{{ chart_hours|safe }}, backgroundColor:'rgba(13,110,253,.3)', borderColor:'#0d6efd', borderWidth:2, borderRadius:4}]},
   options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#aaa',font:{size:10}}, grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#aaa'},grid:{color:'rgba(255,255,255,.05)'},beginAtZero:true}}}
 });
 </script>
