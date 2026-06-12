@@ -50,7 +50,7 @@ const opts = (label, data, labels, color) => ({
   type:'line', data:{labels, datasets:[{label, data, fill:true, backgroundColor:color+'22', borderColor:color, borderWidth:2, tension:.4, pointRadius:5, pointBackgroundColor:color}]},
   options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#aaa'}}, y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#aaa',precision:0},beginAtZero:true}}}
 });
-new Chart(document.getElementById('twChart'), opts('Present', {{ tw_counts }}, {{ tw_dates }}, '#0d6efd'));
-new Chart(document.getElementById('lwChart'), opts('Present', {{ lw_counts }}, {{ lw_dates }}, '#6c757d'));
+new Chart(document.getElementById('twChart'), opts('Present', {{ tw_counts|safe }}, {{ tw_dates|safe }}, '#0d6efd'));
+new Chart(document.getElementById('lwChart'), opts('Present', {{ lw_counts|safe }}, {{ lw_dates|safe }}, '#6c757d'));
 </script>
 {% endblock %}
