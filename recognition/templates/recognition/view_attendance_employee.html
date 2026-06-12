@@ -1,0 +1,77 @@
+{% extends "recognition/base.html" %}
+{% block title %}Attendance by Employee{% endblock %}
+{% block content %}
+<div class="page-title"><i class="bi bi-person-lines-fill me-2"></i>Attendance by Employee</div>
+<div class="page-subtitle">View attendance history for a specific employee</div>
+
+<div class="card mb-4">
+  <div class="card-header"><i class="bi bi-funnel me-2 text-primary"></i>Filter</div>
+  <div class="card-body">
+    <form method="POST">
+      {% csrf_token %}
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label text-white-50 small">Username</label>
+          {{ form.username }}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label text-white-50 small">From</label>
+          {{ form.date_from }}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label text-white-50 small">To</label>
+          {{ form.date_to }}
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-1"></i>Search</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if results %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex align-items-center">
+        <i class="bi bi-table me-2 text-success"></i>{{ employee.username }} — {{ results|length }} days
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead><tr><th>Date</th><th>Status</th><th>Check-In</th><th>Check-Out</th><th>Hours</th></tr></thead>
+          <tbody>
+            {% for r in results %}
+            <tr>
+              <td>{{ r.date }}</td>
+              <td>{% if r.present %}<span class="badge badge-present rounded-pill">Present</span>{% else %}<span class="badge badge-absent rounded-pill">Absent</span>{% endif %}</td>
+              <td>{% if r.time_in %}{{ r.time_in|date:"H:i" }}{% else %}<span class="text-white-50">—</span>{% endif %}</td>
+              <td>{% if r.time_out %}{{ r.time_out|date:"H:i" }}{% else %}<span class="text-white-50">—</span>{% endif %}</td>
+              <td>{{ r.hours }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-bar-chart me-2 text-primary"></i>Hours Chart</div>
+      <div class="card-body"><canvas id="empChart" height="250"></canvas></div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+{% if results %}
+<script>
+new Chart(document.getElementById('empChart'), {
+  type:'bar',
+  data:{labels:{{ chart_dates }}, datasets:[{label:'Hours', data:{{ chart_hours }}, backgroundColor:'rgba(13,110,253,.3)', borderColor:'#0d6efd', borderWidth:2, borderRadius:4}]},
+  options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#aaa',font:{size:10}}, grid:{color:'rgba(255,255,255,.05)'}}, y:{ticks:{color:'#aaa'},grid:{color:'rgba(255,255,255,.05)'},beginAtZero:true}}}
+});
+</script>
+{% endif %}
+{% endblock %}
