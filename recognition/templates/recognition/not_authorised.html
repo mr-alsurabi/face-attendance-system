@@ -1,0 +1,10 @@
+{% extends "recognition/base.html" %}
+{% block title %}Not Authorised{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+  <i class="bi bi-shield-exclamation text-danger" style="font-size:5rem"></i>
+  <h2 class="text-white mt-3">Access Denied</h2>
+  <p class="text-white-50">You do not have permission to access this page.</p>
+  <a href="{% url 'dashboard' %}" class="btn btn-primary"><i class="bi bi-arrow-left me-1"></i>Back to Dashboard</a>
+</div>
+{% endblock %}
