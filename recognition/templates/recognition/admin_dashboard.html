@@ -112,7 +112,7 @@ const chartOpts = (label, data, labels, color) => ({
   }
 });
 document.getElementById('absentCount').textContent = {{ total_emp }} - {{ present_today }};
-new Chart(document.getElementById('chartThisWeek'), chartOpts('Present', {{ tw_counts }}, {{ tw_dates }}, '#0d6efd'));
-new Chart(document.getElementById('chartLastWeek'), chartOpts('Present', {{ lw_counts }}, {{ lw_dates }}, '#6c757d'));
+new Chart(document.getElementById('chartThisWeek'), chartOpts('Present', {{ tw_counts|safe }}, {{ tw_dates|safe }}, '#0d6efd'));
+new Chart(document.getElementById('chartLastWeek'), chartOpts('Present', {{ lw_counts|safe }}, {{ lw_dates|safe }}, '#6c757d'));
 </script>
 {% endblock %}
