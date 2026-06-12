@@ -1,0 +1,31 @@
+{% extends "recognition/base.html" %}
+{% load crispy_forms_tags %}
+{% block title %}Register Employee{% endblock %}
+{% block content %}
+<div class="page-title"><i class="bi bi-person-plus-fill me-2"></i>Register New Employee</div>
+<div class="page-subtitle">Create a new employee account</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-person-fill me-2 text-primary"></i>Employee Details</div>
+      <div class="card-body">
+        <form method="POST">
+          {% csrf_token %}
+          {{ form|crispy }}
+          <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-primary flex-fill">
+              <i class="bi bi-check-circle me-1"></i>Register Employee
+            </button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+        <div class="mt-3 p-3 rounded" style="background:rgba(255,193,7,.08); border:1px solid rgba(255,193,7,.2)">
+          <div class="small text-warning"><i class="bi bi-lightbulb-fill me-1"></i>Next Steps</div>
+          <div class="small text-white-50 mt-1">After registering, go to <strong>Add Photos</strong> to capture the employee's face photos, then <strong>Train Model</strong> to update recognition.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
