@@ -1,11 +1,12 @@
 import os
 import json
 import base64
-import pickle
 import datetime
 import math
 import csv
 import io
+
+import joblib
 
 import cv2
 import numpy as np
@@ -41,8 +42,7 @@ def model_is_trained():
 
 
 def load_model():
-    with open(settings.SVC_MODEL_PATH, 'rb') as f:
-        svc = pickle.load(f)
+    svc = joblib.load(str(settings.SVC_MODEL_PATH))
     encoder = LabelEncoder()
     encoder.classes_ = np.load(str(settings.CLASSES_PATH), allow_pickle=True)
     return svc, encoder
@@ -234,9 +234,12 @@ def train(request):
                 except Exception:
                     img_file.unlink(missing_ok=True)
 
+        if len(set(y)) < 2:
+            messages.error(request, f'Only 1 person found ({set(y).pop() if y else "none"}). You need at least 2 employees with photos to train the model. Please register and add photos for a second employee.')
+            return render(request, 'recognition/train.html', {'trained': False})
         if len(X) < 2:
-            messages.error(request, 'Not enough training data. Add at least 2 people with photos.')
-            return render(request, 'recognition/train.html')
+            messages.error(request, 'Not enough training data. Add more photos first.')
+            return render(request, 'recognition/train.html', {'trained': False})
 
         encoder = LabelEncoder()
         encoder.fit(y)
@@ -249,8 +252,7 @@ def train(request):
         svc = SVC(kernel='linear', probability=True, C=1.0)
         svc.fit(X_arr, y_encoded)
 
-        with open(settings.SVC_MODEL_PATH, 'wb') as f:
-            pickle.dump(svc, f)
+        joblib.dump(svc, str(settings.SVC_MODEL_PATH))
 
         messages.success(request, f'Training complete! Model trained on {len(X)} images for {len(encoder.classes_)} people.')
     except Exception as e:
