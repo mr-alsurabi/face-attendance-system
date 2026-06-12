@@ -1,0 +1,72 @@
+{% extends "recognition/base.html" %}
+{% block title %}My Dashboard{% endblock %}
+{% block content %}
+<div class="page-title">Welcome, {{ user.get_full_name|default:user.username }}</div>
+<div class="page-subtitle">{{ today }}</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-4">
+    <div class="stat-card">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon" style="background:{% if present_today %}rgba(25,135,84,.15){% else %}rgba(220,53,69,.15){% endif %}">
+          <i class="bi bi-{% if present_today %}check-circle-fill text-success{% else %}x-circle-fill text-danger{% endif %}"></i>
+        </div>
+        <div>
+          <div class="text-white-50 small">Today's Status</div>
+          <div class="fw-bold text-white fs-5">{% if present_today %}Present{% else %}Not Checked In{% endif %}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-4">
+    <div class="stat-card">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon" style="background:rgba(13,110,253,.15)"><i class="bi bi-calendar-check-fill text-primary"></i></div>
+        <div><div class="text-white-50 small">Days Present</div><div class="fs-3 fw-bold text-white">{{ total_days }}</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-4">
+    <div class="stat-card">
+      <div class="d-flex align-items-center gap-3">
+        <div class="stat-icon" style="background:rgba(255,193,7,.15)"><i class="bi bi-clock-fill text-warning"></i></div>
+        <div>
+          <div class="text-white-50 small">Last Activity</div>
+          <div class="fw-bold text-white">{% if last_time %}{{ last_time.time|date:"H:i" }} — {% if last_time.out %}Out{% else %}In{% endif %}{% else %}—{% endif %}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header px-3 py-2"><i class="bi bi-calendar3 me-2 text-primary"></i>This Week</div>
+      <div class="card-body">
+        <div class="d-flex gap-2 justify-content-around">
+          {% for day in my_week %}
+          <div class="text-center">
+            <div class="small text-white-50 mb-1">{{ day.date|slice:"8:" }}</div>
+            <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto"
+                 style="width:40px;height:40px;background:{% if day.present %}rgba(25,135,84,.25){% else %}rgba(220,53,69,.15){% endif %}">
+              <i class="bi bi-{% if day.present %}check-lg text-success{% else %}dash text-danger{% endif %}"></i>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header px-3 py-2"><i class="bi bi-lightning-fill me-2 text-warning"></i>Quick Actions</div>
+      <div class="card-body d-flex flex-column gap-2">
+        <a href="{% url 'mark-attendance-in' %}" class="btn btn-success w-100"><i class="bi bi-box-arrow-in-right me-2"></i>Check-In</a>
+        <a href="{% url 'mark-attendance-out' %}" class="btn btn-danger w-100"><i class="bi bi-box-arrow-right me-2"></i>Check-Out</a>
+        <a href="{% url 'view-my-attendance' %}" class="btn btn-outline-primary w-100"><i class="bi bi-calendar-check me-2"></i>View My Records</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
